@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -93,8 +95,11 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024   # 100MB
 
 # AI Model settings
 AI_MODELS = {
-    'WHISPER_MODEL': 'small',  # Options: tiny, base, small, medium, large
-    'TITLE_MODEL': 't5-small',  # Updated to use T5 which is more reliable
-    'MAX_AUDIO_SIZE_MB': 50,
+    'WHISPER_MODEL': 'whisper-large-v3',  # Groq Whisper model
+    'TITLE_MODEL': 'llama3-8b-8192',     # Groq text generation model
+    'MAX_AUDIO_SIZE_MB': 25,              # Groq limit is 25MB
     'SUPPORTED_AUDIO_FORMATS': ['.wav', '.mp3', '.m4a', '.flac', '.ogg'],
 }
+
+# Add Groq API configuration
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY')

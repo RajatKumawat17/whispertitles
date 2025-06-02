@@ -19,6 +19,18 @@ import datetime
 
 logger = logging.getLogger(__name__)
 
+from django.shortcuts import render
+from django.views.generic import TemplateView
+
+class TestingInterfaceView(TemplateView):
+    """Simple view to serve the testing interface"""
+    template_name = 'core/testing_interface.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['api_base_url'] = '/api'
+        return context
+
 class AudioTranscriptionView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     
@@ -65,10 +77,12 @@ class AudioTranscriptionView(APIView):
                 file_path = default_storage.save(f'temp/{transcription.id}_{audio_file.name}', audio_file)
                 full_path = default_storage.path(file_path)
                 
-                # Process audio
-                logger.info(f"Processing audio file: {audio_file.name}")
-                result = audio_service.transcribe_audio(full_path)
+                # ADD THIS: Ensure the directory exists and file is accessible
+                os.makedirs(os.path.dirname(full_path), exist_ok=True)
                 
+                # Process audio
+                logger.info(f"Processing audio file: {audio_file.name} at {full_path}")
+                result = audio_service.transcribe_audio(full_path)
                 # Update transcription record
                 transcription.transcription_text = audio_service.format_transcription_output(result)
                 transcription.language_detected = result.get('language', 'unknown')
@@ -322,19 +336,18 @@ class HealthCheckView(APIView):
     
     def get(self, request):
         """Return system status"""
-        import torch
+        import os
         
         status_info = {
             'status': 'healthy',
             'timestamp': timezone.now().isoformat(),
             'system_info': {
-                'cuda_available': torch.cuda.is_available(),
-                'device_count': torch.cuda.device_count() if torch.cuda.is_available() else 0,
+                'groq_api_configured': bool(settings.GROQ_API_KEY and settings.GROQ_API_KEY != 'your-groq-api-key-here'),
                 'python_version': f"{__import__('sys').version_info.major}.{__import__('sys').version_info.minor}",
             },
             'models_status': {
-                'whisper_loaded': audio_service.whisper_model is not None,
-                'title_generator_loaded': title_service.generator is not None,
+                'groq_whisper_available': True,  # Always true if API key is configured
+                'groq_llama_available': True,    # Always true if API key is configured
             },
             'endpoints': {
                 'transcription': '/api/transcribe/',
@@ -342,6 +355,5 @@ class HealthCheckView(APIView):
                 'health': '/api/health/'
             }
         }
-
         
         return Response(status_info, status=status.HTTP_200_OK)

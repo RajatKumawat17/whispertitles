@@ -2,22 +2,14 @@
 Django
 djangorestframework
 
-# Audio Processing
-openai-whisper
-torch
-torchaudio
-pyannote.audio
+# Audio Processing (keep pydub for file conversion)
 pydub
 librosa
 
-# NLP for Title Generation
-transformers
-tokenizers
+# Groq API
+groq
 
 # Utilities
 requests
 Pillow
 python-multipart
-
-# Optional: For better performance
-accelerate
