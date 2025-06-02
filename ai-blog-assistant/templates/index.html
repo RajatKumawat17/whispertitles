@@ -131,7 +131,7 @@
         // Audio file handling
         const audioFileInput = document.getElementById('audioFile');
         const audioFileName = document.getElementById('audioFileName');
-        
+
         audioFileInput.addEventListener('change', function(e) {
             if (e.target.files.length > 0) {
                 const fileName = e.target.files[0].name;
@@ -144,14 +144,14 @@
         // Content counter
         const blogContent = document.getElementById('blogContent');
         const contentCounter = document.getElementById('contentCounter');
-        
+
         blogContent.addEventListener('input', function() {
             const count = this.value.length;
             contentCounter.textContent = `${count} characters`;
             contentCounter.className = count < 50 ? 'text-xs text-red-500 mt-1' : 'text-xs text-gray-500 mt-1';
         });
 
-        // Transcription form
+        // FIXED: Transcription form
         document.getElementById('transcriptionForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -166,6 +166,48 @@
 
             const loading = document.getElementById('transcriptionLoading');
             const result = document.getElementById('transcriptionResult');
+            
+            loading.classList.add('active');
+            result.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/transcribe/', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayTranscriptionResult(data);
+                    loadRecentTranscriptions();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                loading.classList.remove('active');
+            }
+        });
+
+        // ADDED: Title form handler
+        document.getElementById('titleForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const content = document.getElementById('blogContent').value.trim();
+            if (!content) {
+                alert('Please enter blog content');
+                return;
+            }
+            
+            if (content.length < 50) {
+                alert('Content must be at least 50 characters long');
+                return;
+            }
+
+            const loading = document.getElementById('titleLoading');
+            const result = document.getElementById('titleResult');
             
             loading.classList.add('active');
             result.classList.add('hidden');
