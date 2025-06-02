@@ -372,6 +372,3 @@ For issues and questions:
 2.  Review the API documentation
 3.  Create an issue in the repository
 
-* * * * *
-
-**Happy Coding! 🎉**
