@@ -1,4 +1,3 @@
-
 import os
 from pathlib import Path
 
@@ -95,7 +94,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024   # 100MB
 # AI Model settings
 AI_MODELS = {
     'WHISPER_MODEL': 'small',  # Options: tiny, base, small, medium, large
-    'TITLE_MODEL': 'facebook/bart-large-cnn',
+    'TITLE_MODEL': 't5-small',  # Updated to use T5 which is more reliable
     'MAX_AUDIO_SIZE_MB': 50,
     'SUPPORTED_AUDIO_FORMATS': ['.wav', '.mp3', '.m4a', '.flac', '.ogg'],
 }

@@ -13,6 +13,9 @@ import logging
 import json
 from .models import AudioTranscription, TranscriptionSegment, BlogPost, TitleSuggestion
 from .services import audio_service, title_service
+from django.http import JsonResponse
+from django.conf import settings
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -339,5 +342,6 @@ class HealthCheckView(APIView):
                 'health': '/api/health/'
             }
         }
+
         
         return Response(status_info, status=status.HTTP_200_OK)

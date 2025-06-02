@@ -1,4 +1,3 @@
-# core/services.py
 
 import whisper
 import torch
@@ -8,7 +7,6 @@ import logging
 from django.conf import settings
 from django.core.files.storage import default_storage
 from pydub import AudioSegment
-from pyannote.audio import Pipeline
 from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 import re
 from typing import List, Dict, Tuple
@@ -140,32 +138,40 @@ class AudioTranscriptionService:
 
 class TitleGenerationService:
     def __init__(self):
-        self.model = None
-        self.tokenizer = None
         self.generator = None
+        self.model_type = None
         
     def load_model(self):
-        """Load the title generation model"""
+        """Load the title generation model with fallbacks"""
         if self.generator is None:
-            model_name = getattr(settings, 'AI_MODELS', {}).get('TITLE_MODEL', 'facebook/bart-large-cnn')
-            logger.info(f"Loading title generation model: {model_name}")
+            # Try multiple models in order of preference
+            models_to_try = [
+                ("t5-small", "text2text-generation"),
+                ("google/pegasus-xsum", "summarization"),
+                ("facebook/bart-large-cnn", "summarization"),
+                ("t5-base", "text2text-generation")
+            ]
             
-            try:
-                # Use pipeline for simplicity
-                self.generator = pipeline(
-                    "summarization",
-                    model=model_name,
-                    tokenizer=model_name,
-                    device=0 if torch.cuda.is_available() else -1
-                )
-            except Exception as e:
-                logger.warning(f"Failed to load {model_name}, falling back to distilbart")
-                # Fallback to smaller model
-                self.generator = pipeline(
-                    "summarization", 
-                    model="sshleifer/distilbart-cnn-12-6",
-                    device=0 if torch.cuda.is_available() else -1
-                )
+            for model_name, task in models_to_try:
+                try:
+                    logger.info(f"Trying to load {model_name} for {task}")
+                    device = 0 if torch.cuda.is_available() else -1
+                    
+                    self.generator = pipeline(
+                        task,
+                        model=model_name,
+                        device=device
+                    )
+                    self.model_type = task
+                    logger.info(f"Successfully loaded {model_name}")
+                    break
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to load {model_name}: {str(e)}")
+                    continue
+            
+            if self.generator is None:
+                raise Exception("Failed to load any title generation model")
     
     def clean_content(self, content: str) -> str:
         """Clean and prepare content for title generation"""
@@ -173,7 +179,7 @@ class TitleGenerationService:
         content = re.sub(r'\s+', ' ', content.strip())
         
         # Limit content length (models have token limits)
-        max_length = 1000  # characters
+        max_length = 500  # Reduced for better performance
         if len(content) > max_length:
             content = content[:max_length] + "..."
         
@@ -194,61 +200,26 @@ class TitleGenerationService:
                     'method': 'fallback'
                 }]
             
-            # Generate multiple titles with different parameters
+            # Generate titles based on model type
             titles = []
             
-            # Method 1: Direct summarization (short)
-            try:
-                result1 = self.generator(
-                    cleaned_content,
-                    max_length=15,
-                    min_length=3,
-                    do_sample=True,
-                    temperature=0.7
-                )
-                titles.append({
-                    'title': result1[0]['summary_text'],
-                    'confidence': 0.8,
-                    'method': 'summarization_short'
-                })
-            except:
-                pass
-            
-            # Method 2: Longer summarization
-            try:
-                result2 = self.generator(
-                    cleaned_content,
-                    max_length=25,
-                    min_length=5,
-                    do_sample=True,
-                    temperature=0.9
-                )
-                titles.append({
-                    'title': result2[0]['summary_text'],
-                    'confidence': 0.7,
-                    'method': 'summarization_long'
-                })
-            except:
-                pass
-            
-            # Method 3: Extract key phrases as title
-            key_phrases_title = self.extract_key_phrases_title(cleaned_content)
-            if key_phrases_title:
-                titles.append({
-                    'title': key_phrases_title,
-                    'confidence': 0.6,
-                    'method': 'key_phrases'
-                })
+            if self.model_type == "text2text-generation":
+                titles = self._generate_t5_titles(cleaned_content, num_titles)
+            else:
+                titles = self._generate_summarization_titles(cleaned_content, num_titles)
             
             # Ensure we have at least num_titles
             while len(titles) < num_titles:
+                fallback_title = self.extract_key_phrases_title(cleaned_content)
+                if not fallback_title:
+                    fallback_title = f"Article about {cleaned_content.split()[:3]}"
+                
                 titles.append({
-                    'title': f"Blog Post About {cleaned_content.split()[0:3]}",
+                    'title': fallback_title,
                     'confidence': 0.4,
                     'method': 'fallback'
                 })
             
-            # Return top num_titles
             return titles[:num_titles]
             
         except Exception as e:
@@ -262,6 +233,74 @@ class TitleGenerationService:
                 }
                 for _ in range(num_titles)
             ]
+    
+    def _generate_t5_titles(self, content: str, num_titles: int) -> List[Dict]:
+        """Generate titles using T5 model"""
+        titles = []
+        
+        # Different prompts for T5
+        prompts = [
+            f"summarize: {content}",
+            f"generate title: {content}",
+            f"headline: {content}"
+        ]
+        
+        for i, prompt in enumerate(prompts[:num_titles]):
+            try:
+                result = self.generator(
+                    prompt,
+                    max_length=20,
+                    min_length=3,
+                    do_sample=True,
+                    temperature=0.7 + (i * 0.1)
+                )
+                
+                title = result[0]['generated_text'].strip()
+                if title:
+                    titles.append({
+                        'title': title,
+                        'confidence': 0.8 - (i * 0.1),
+                        'method': 't5_generation'
+                    })
+            except Exception as e:
+                logger.warning(f"T5 generation failed for prompt {i}: {str(e)}")
+                continue
+        
+        return titles
+    
+    def _generate_summarization_titles(self, content: str, num_titles: int) -> List[Dict]:
+        """Generate titles using summarization models"""
+        titles = []
+        
+        # Different parameters for variety
+        params = [
+            {'max_length': 15, 'min_length': 3, 'temperature': 0.7},
+            {'max_length': 25, 'min_length': 5, 'temperature': 0.9},
+            {'max_length': 20, 'min_length': 4, 'temperature': 0.8}
+        ]
+        
+        for i, param in enumerate(params[:num_titles]):
+            try:
+                result = self.generator(
+                    content,
+                    max_length=param['max_length'],
+                    min_length=param['min_length'],
+                    do_sample=True,
+                    temperature=param['temperature']
+                )
+                
+                title = result[0]['summary_text'].strip()
+                if title:
+                    titles.append({
+                        'title': title,
+                        'confidence': 0.8 - (i * 0.1),
+                        'method': 'summarization'
+                    })
+            except Exception as e:
+                logger.warning(f"Summarization failed for params {i}: {str(e)}")
+                continue
+        
+        return titles
     
     def extract_key_phrases_title(self, content: str) -> str:
         """Extract key phrases and create a title"""
@@ -279,7 +318,7 @@ class TitleGenerationService:
             title = " ".join(important_words[:5])  # Take first 5 important words
             return title.title()
         
-        return None
+        return "Blog Post"
 
 
 # Global service instances (for reuse)
