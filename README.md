@@ -1,374 +1,309 @@
-# whispertitles
+# Whispertitles - Audio Transcription & Blog Title Generation
 
-A Django-based prototype application featuring **Audio Transcription with Speaker Diarization** and **AI-powered Blog Title Suggestions**.
+A simplified Django application that implements two AI-powered features:
+1. **Audio Transcription with Speaker Diarization**
+2. **AI-Powered Blog Title Suggestions**
 
-🎯 Features
------------
+## Features
 
 ### Feature 1: Audio Transcription with Diarization
+- Transcribes audio files using Groq's Whisper API
+- Identifies different speakers in the audio
+- Supports multiple audio formats (WAV, MP3, M4A, FLAC)
+- Returns structured JSON with speaker segments and timestamps
 
--   **Multi-format Audio Support**: WAV, MP3, M4A, FLAC, OGG
--   **Automatic Transcription**: Using OpenAI's Whisper model
--   **Speaker Diarization**: Identifies "who spoke when"
--   **Multilingual Support**: Auto-detects language (99+ languages supported)
--   **Structured Output**: JSON format with timestamps and speaker labels
+### Feature 2: Blog Title Suggestions
+- Generates 3 engaging title suggestions for blog content
+- Uses Groq's LLaMA model for natural language processing
+- SEO-friendly and clickable titles
+- Analyzes content to create relevant suggestions
 
-### Feature 2: AI Blog Title Suggestions
+## Prerequisites
 
--   **Smart Title Generation**: Uses BART/T5 transformer models
--   **Multiple Suggestions**: Generates 3 unique title options
--   **Content Analysis**: Processes blog content to extract key themes
--   **Confidence Scoring**: Each suggestion includes confidence metrics
+- Python 3.8+
+- Django 4.2+
+- Groq API Key (free at [groq.com](https://groq.com))
 
-🛠️ Technology Stack
---------------------
+## Installation & Setup
 
--   **Backend**: Django 4.2 + Django REST Framework
--   **AI/ML**:
-    -   Whisper (Audio Transcription)
-    -   PyAnnote Audio (Speaker Diarization)
-    -   Transformers (Title Generation)
-    -   PyTorch
--   **Database**: SQLite (development)
--   **File Processing**: Pydub, Librosa
-
-📋 Requirements
----------------
-
--   Python 3.8+
--   8GB+ RAM (for AI models)
--   5GB+ storage (for model files)
--   GPU recommended but not required
-
-🚀 Quick Setup
---------------
-
-### 1\. Clone and Setup Environment
-
-```
-# Clone the repository
-git clone <your-repo-url>
-cd django-ai-prototype
-
-# Run setup script
-chmod +x setup.sh
-./setup.sh
-
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd django_ai_prototype
 ```
 
-### 2\. Manual Setup (Alternative)
+### 2. Create Virtual Environment
+```bash
+python -m venv venv
 
+# Windows
+venv\Scripts\activate
+
+# macOS/Linux
+source venv/bin/activate
 ```
-# Create virtual environment
-python3 -m venv django_ai_env
-source django_ai_env/bin/activate  # Windows: django_ai_env\Scripts\activate
 
-# Install dependencies
+### 3. Install Dependencies
+```bash
 pip install -r requirements.txt
+```
 
-# Setup Django
+### 4. Environment Configuration
+Create a `.env` file in the project root:
+```env
+GROQ_API_KEY=your_groq_api_key_here
+```
+
+**Get your Groq API key:**
+1. Visit [console.groq.com](https://console.groq.com)
+2. Sign up/login
+3. Create a new API key
+4. Copy the key to your `.env` file
+
+### 5. Database Setup
+```bash
 python manage.py makemigrations
 python manage.py migrate
-python manage.py createsuperuser
+python manage.py createsuperuser  # Optional: for admin access
+```
 
-# Start server
+### 6. Run the Server
+```bash
 python manage.py runserver
-
 ```
 
-📡 API Endpoints
-----------------
+The API will be available at `http://localhost:8000/api/`
 
-### Health Check
+## API Endpoints
 
-```
-GET /api/health/
+### 1. Audio Transcription Endpoint
 
-```
+**POST** `/api/transcribe/`
 
-**Response:**
+Upload an audio file and get transcription with speaker diarization.
 
-```
-{
-  "status": "healthy",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "system_info": {
-    "cuda_available": true,
-    "device_count": 1
-  },
-  "models_status": {
-    "whisper_loaded": true,
-    "title_generator_loaded": true
-  }
-}
+**Request:**
+- Method: POST
+- Content-Type: multipart/form-data
+- Body: audio file (key: 'audio')
 
-```
-
-### Audio Transcription
-
-#### Upload Audio for Transcription
-
-```
-POST /api/transcribe/
-Content-Type: multipart/form-data
-
-Body:
-- audio: [audio file]
-
-```
-
-**Example with cURL:**
-
-```
-curl -X POST\
-  http://127.0.0.1:8000/api/transcribe/\
-  -F "audio=@sample_conversation.wav"
-
+**Example using cURL:**
+```bash
+curl -X POST \
+  http://localhost:8000/api/transcribe/ \
+  -F "audio=@/path/to/your/audio.wav"
 ```
 
 **Response:**
-
-```
+```json
 {
-  "transcription_id": "uuid-here",
-  "status": "completed",
-  "language_detected": "en",
+  "transcription_id": "123e4567-e89b-12d3-a456-426614174000",
+  "text": "Hello, my name is John. Hi John, nice to meet you.",
+  "language": "en",
   "speakers_count": 2,
-  "transcription_text": "[0:00:00 - 0:00:05] SPEAKER_00: Hello, how are you today?\n[0:00:05 - 0:00:10] SPEAKER_01: I'm doing great, thanks for asking!",
   "segments": [
     {
       "start_time": 0.0,
-      "end_time": 5.2,
-      "speaker": "SPEAKER_00",
-      "text": "Hello, how are you today?",
-      "duration": 5.2
+      "end_time": 3.2,
+      "speaker": "SPEAKER_0",
+      "text": "Hello, my name is John"
+    },
+    {
+      "start_time": 3.7,
+      "end_time": 6.5,
+      "speaker": "SPEAKER_1", 
+      "text": "Hi John, nice to meet you"
     }
-  ],
-  "processed_at": "2024-01-15T10:35:00Z"
+  ]
 }
-
 ```
 
-#### Get Transcription Status
+### 2. Blog Title Generation Endpoint
 
-```
-GET /api/transcribe/{transcription_id}/
+**POST** `/api/generate-titles/`
 
-```
+Generate title suggestions for blog content.
 
-### Blog Title Suggestions
+**Request:**
+- Method: POST
+- Content-Type: application/json
+- Body: JSON with blog content
 
-#### Generate Title Suggestions
-
-```
-POST /api/generate-titles/
-Content-Type: application/json
-
-{
-  "content": "Your blog post content here...",
-  "num_suggestions": 3
-}
-
-```
-
-**Example with cURL:**
-
-```
-curl -X POST\
-  http://127.0.0.1:8000/api/generate-titles/\
-  -H "Content-Type: application/json"\
+**Example using cURL:**
+```bash
+curl -X POST \
+  http://localhost:8000/api/generate-titles/ \
+  -H "Content-Type: application/json" \
   -d '{
-    "content": "Artificial intelligence is revolutionizing the way we work and live. From automating repetitive tasks to providing insights from large datasets, AI is becoming an integral part of modern business operations.",
-    "num_suggestions": 3
+    "content": "Artificial Intelligence is transforming the way we work and live. From automated customer service to predictive analytics, AI is becoming an integral part of modern business operations. Companies that embrace AI early are seeing significant improvements in efficiency and customer satisfaction."
   }'
-
 ```
 
 **Response:**
-
-```
+```json
 {
-  "blog_post_id": "uuid-here",
-  "content_length": 234,
-  "suggestions": [
-    {
-      "title": "How AI is Revolutionizing Modern Business Operations",
-      "confidence": 0.8,
-      "generation_method": "summarization_short"
-    },
-    {
-      "title": "The Future of Work: AI's Impact on Business",
-      "confidence": 0.7,
-      "generation_method": "summarization_long"
-    },
-    {
-      "title": "Artificial Intelligence Transforming Workplaces",
-      "confidence": 0.6,
-      "generation_method": "key_phrases"
-    }
-  ],
-  "generated_at": "2024-01-15T10:40:00Z"
+  "blog_post_id": "987fcdeb-51a2-43d1-9c4f-123456789abc",
+  "content_length": 284,
+  "suggested_titles": [
+    "How AI is Revolutionizing Modern Business Operations",
+    "The Future of Work: AI's Impact on Efficiency and Customer Service", 
+    "Why Early AI Adoption Gives Companies a Competitive Edge"
+  ]
 }
-
 ```
 
-#### Get Blog Post Details
+## Testing the API
 
+### Using Python Requests
+```python
+import requests
+
+# Test audio transcription
+with open('audio.wav', 'rb') as f:
+    response = requests.post(
+        'http://localhost:8000/api/transcribe/',
+        files={'audio': f}
+    )
+print(response.json())
+
+# Test title generation
+response = requests.post(
+    'http://localhost:8000/api/generate-titles/',
+    json={
+        'content': 'Your blog content here...'
+    }
+)
+print(response.json())
 ```
-GET /api/blog-posts/{blog_post_id}/
 
+### Using JavaScript (Frontend)
+```javascript
+// Audio transcription
+const formData = new FormData();
+formData.append('audio', audioFile);
+
+fetch('/api/transcribe/', {
+    method: 'POST',
+    body: formData
+})
+.then(response => response.json())
+.then(data => console.log(data));
+
+// Title generation
+fetch('/api/generate-titles/', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+        content: 'Your blog content here...'
+    })
+})
+.then(response => response.json())
+.then(data => console.log(data));
 ```
 
-🧪 Testing the APIs
--------------------
-
-### Test Audio Transcription
-
-1.  **Prepare an audio file** (WAV, MP3, etc.)
-2.  **Upload via API**:
-
-    ```
-    curl -X POST http://127.0.0.1:8000/api/transcribe/ -F "audio=@your_audio.wav"
-
-    ```
-
-3.  **Check the response** for transcription results
-
-### Test Title Generation
-
-1.  **Send blog content**:
-
-    ```
-    curl -X POST http://127.0.0.1:8000/api/generate-titles/ \-H "Content-Type: application/json" \-d '{"content": "Write about your favorite topic here..."}'
-
-    ```
-
-2.  **Review generated titles**
-
-📁 Project Structure
---------------------
-
+## File Structure
 ```
 django_ai_prototype/
-├── core/                           # Main Django app
-│   ├── models.py                   # Database models
-│   ├── views.py                    # API views
-│   ├── services.py                 # AI processing logic
-│   ├── admin.py                    # Django admin config
-│   └── urls.py                     # URL routing
-├── media/                          # Uploaded files
-│   ├── audio_files/               # Processed audio files
-│   └── temp/                      # Temporary processing files
-├── django_ai_prototype/           # Django project settings
-│   ├── settings.py                # Main configuration
-│   └── urls.py                    # Root URL config
-├── requirements.txt               # Python dependencies
-├── setup.sh                      # Setup script
-└── manage.py                     # Django management
-
+├── django_ai_prototype/
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── core/
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── models.py
+│   ├── services.py
+│   ├── views.py
+│   └── urls.py
+├── manage.py
+├── requirements.txt
+├── .env
+└── README.md
 ```
 
-🔧 Configuration
-----------------
+## Error Handling
 
-### Audio Processing Settings
+The API includes comprehensive error handling:
 
-```
-# In settings.py
-AI_MODELS = {
-    'WHISPER_MODEL': 'base',  # Options: tiny, base, small, medium, large
-    'MAX_AUDIO_SIZE_MB': 50,
-    'SUPPORTED_AUDIO_FORMATS': ['.wav', '.mp3', '.m4a', '.flac', '.ogg'],
+- **400 Bad Request**: Missing or invalid input
+- **413 Request Entity Too Large**: Audio file exceeds 25MB limit
+- **500 Internal Server Error**: Processing failures
+
+**Example error response:**
+```json
+{
+  "error": "File too large. Max size: 25MB"
 }
-
 ```
 
-### Title Generation Settings
+## Supported Audio Formats
 
-```
-AI_MODELS = {
-    'TITLE_MODEL': 'facebook/bart-large-cnn',  # Or 'sshleifer/distilbart-cnn-12-6'
-}
+- WAV (recommended)
+- MP3
+- M4A
+- FLAC
+- OGG
 
-```
+**Audio file requirements:**
+- Maximum size: 25MB
+- Recommended: 16kHz mono WAV files for best results
 
-🚨 Troubleshooting
-------------------
+## Limitations
+
+1. **Speaker Diarization**: Uses simple rule-based diarization for demo purposes
+2. **Language Detection**: Currently set to English
+3. **File Size**: Limited to 25MB per Groq API constraints
+4. **Rate Limits**: Subject to Groq API rate limits
+
+## Development Notes
+
+### Model Information
+- **Transcription**: Groq Whisper Large V3
+- **Title Generation**: Groq LLaMA 3 8B
+- **Database**: SQLite (development)
+
+### Extending the Application
+
+To add more features:
+1. Extend models in `core/models.py`
+2. Add new services in `core/services.py`  
+3. Create new views in `core/views.py`
+4. Update URLs in `core/urls.py`
+
+## Troubleshooting
 
 ### Common Issues
 
-1.  **"CUDA out of memory"**
+1. **"No module named 'groq'"**
+   ```bash
+   pip install groq
+   ```
 
-    -   Solution: Use CPU instead by setting `CUDA_VISIBLE_DEVICES=""`
-    -   Or use smaller models: `WHISPER_MODEL = 'tiny'`
-2.  **"Model download failed"**
+2. **"GROQ_API_KEY not found"**
+   - Ensure `.env` file exists with valid API key
+   - Check environment variable is loaded
 
-    -   Solution: Check internet connection
-    -   Manually download: `python -c "import whisper; whisper.load_model('base')"`
-3.  **"Audio format not supported"**
+3. **Audio processing errors**
+   - Ensure pydub is installed: `pip install pydub`
+   - Check audio file format and size
 
-    -   Solution: Convert to WAV/MP3 first
-    -   Install ffmpeg: `sudo apt install ffmpeg` (Linux) or `brew install ffmpeg` (Mac)
-4.  **"Title generation too slow"**
+4. **Database errors**
+   ```bash
+   python manage.py makemigrations
+   python manage.py migrate
+   ```
 
-    -   Solution: Use smaller model: `sshleifer/distilbart-cnn-12-6`
+## License
 
-### Performance Tips
+This project is for demonstration purposes. Please check individual package licenses for production use.
 
--   **Use GPU** if available for faster processing
--   **Smaller models** for development: `whisper tiny`, `distilbart-cnn-12-6`
--   **Limit file sizes** for reasonable processing times
--   **Batch processing** for multiple files
+## Support
 
-🔒 Production Considerations
-----------------------------
-
-This is a **prototype implementation**. For production:
-
-1.  **Add authentication** and rate limiting
-2.  **Use async processing** (Celery + Redis)
-3.  **Add proper error handling** and logging
-4.  **Use PostgreSQL** instead of SQLite
-5.  **Implement file cleanup** strategies
-6.  **Add monitoring** and health checks
-7.  **Scale with Docker/Kubernetes**
-
-📊 Model Performance
---------------------
-
-### Audio Transcription
-
--   **Processing Time**: ~1-2 minutes for 5-minute audio
--   **Accuracy**: 85-95% depending on audio quality
--   **Languages**: 99+ languages supported
--   **Speaker Diarization**: Basic implementation (2-speaker detection)
-
-### Title Generation
-
--   **Processing Time**: 2-5 seconds per request
--   **Quality**: Good for most content types
--   **Length**: Optimized for blog title length (5-15 words)
-
-🤝 Contributing
----------------
-
-1.  Fork the repository
-2.  Create a feature branch
-3.  Make your changes
-4.  Add tests
-5.  Submit a pull request
-
-📄 License
-----------
-
-MIT License - feel free to use for learning and development purposes.
-
-🆘 Support
-----------
-
-For issues and questions:
-
-1.  Check the troubleshooting section
-2.  Review the API documentation
-3.  Create an issue in the repository
-
+For issues or questions:
+1. Check the troubleshooting section
+2. Verify API key configuration
+3. Ensure all dependencies are installed
+4. Check Django logs for detailed error messages
