@@ -1,0 +1,23 @@
+# Core Django
+Django
+djangorestframework
+
+# Audio Processing
+openai-whisper
+torch
+torchaudio
+pyannote.audio
+pydub
+librosa
+
+# NLP for Title Generation
+transformers
+tokenizers
+
+# Utilities
+requests
+Pillow
+python-multipart
+
+# Optional: For better performance
+accelerate
