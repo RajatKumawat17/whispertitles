@@ -14,7 +14,7 @@ A Django web application that provides:
 ### Step 1: Download/Clone Project
 ```bash
 # Option 1: Clone with Git
-git clone <your-repo-url>
+git clone [repo-url]
 cd ai-blog-assistant
 
 # Option 2: Download and extract ZIP file
