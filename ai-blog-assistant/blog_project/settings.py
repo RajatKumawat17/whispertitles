@@ -1,16 +1,15 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings
-SECRET_KEY = 'django-insecure-0de7&ub(y3*+1bshmlp_x+3#i&!z^y6x1fk%8@3(*gpq0aa)x5'
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-oan9htsmdn#17)c6ldqg42utl7sc_=6cckogn7ik@sed656f0%')
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
-# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -18,8 +17,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',
-    'core',  # Our main app
+    'blog_app',
 ]
 
 MIDDLEWARE = [
@@ -32,12 +30,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'django_ai_prototype.urls'
+ROOT_URLCONF = 'blog_project.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -50,9 +48,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'django_ai_prototype.wsgi.application'
+WSGI_APPLICATION = 'blog_project.wsgi.application'
 
-# Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -60,46 +57,37 @@ DATABASES = {
     }
 }
 
-# Internationalization
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-# Media files (for audio uploads)
-MEDIA_URL = 'media/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# REST Framework configuration
-REST_FRAMEWORK = {
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-    ],
-    'DEFAULT_PARSER_CLASSES': [
-        'rest_framework.parsers.JSONParser',
-        'rest_framework.parsers.MultiPartParser',
-        'rest_framework.parsers.FileUploadParser',
-    ],
-}
+# Groq API Configuration
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
 # File upload settings
-FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024   # 100MB
-
-# AI Model settings
-AI_MODELS = {
-    'WHISPER_MODEL': 'whisper-large-v3',  # Groq Whisper model
-    'TITLE_MODEL': 'llama3-8b-8192',     # Groq text generation model
-    'MAX_AUDIO_SIZE_MB': 25,              # Groq limit is 25MB
-    'SUPPORTED_AUDIO_FORMATS': ['.wav', '.mp3', '.m4a', '.flac', '.ogg'],
-}
-
-# Add Groq API configuration
-GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
+FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
