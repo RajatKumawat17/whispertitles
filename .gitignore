@@ -15,7 +15,6 @@ build/
 *.pot
 *.pyc
 db.sqlite3
-media/
 *.sqlite3
 
 # Virtualenv
